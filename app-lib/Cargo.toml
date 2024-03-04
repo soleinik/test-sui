@@ -1,0 +1,20 @@
+[package]
+name = "app-lib"
+version.workspace = true
+edition.workspace = true
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+app-data = { path = "../app-data" }
+
+log = "0.4"
+
+
+sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk" }
+
+tokio-stream = "0.1"
+
+tokio = { version = "1.36", features = ["full"] }
+#thiserror = "1.0"

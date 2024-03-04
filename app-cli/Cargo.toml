@@ -1,0 +1,17 @@
+[package]
+name = "app-cli"
+version.workspace = true
+edition.workspace = true
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+app-lib = { path = "../app-lib" }
+app-data = { path = "../app-data" }
+
+log = "0.4"
+env_logger = "0.11"
+
+tokio = { version = "1.36", features = ["full"] }
+dotenv = "0.15.0"
