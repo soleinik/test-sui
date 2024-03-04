@@ -18,7 +18,7 @@ This project consists of 3 crates
 2. Clone repo
 
 ```
-$ git clone git@github.com:soleinik/test-sui.git & cd test-sui
+$ git clone git@github.com:soleinik/test-sui.git && cd test-sui
 
 ```
 3. _Build_ and _run_ while in project's root folder, execute `cargo run` as follows
