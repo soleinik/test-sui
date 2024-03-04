@@ -2,13 +2,17 @@
 
 
 # About
+SUI network integration attempt... Consume data from the netwrk and listen to events  
+
+
+## Project structure
 This project consists of 3 crates
 - [lib](./app-lib/) with main logic
 - [launcher](./app-cli/) with binary app
 - [data](./app-data/) shared data between services
 
 
-# How to run
+## How to run
 
 1. Install Rust
 2. Clone repo
