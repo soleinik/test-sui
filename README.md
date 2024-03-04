@@ -35,7 +35,7 @@ $ cargo run
 ...
 ```
 
-Application will fetch most recent Checkpint (from testnet), iterate over transactions (fetching by digests), find BalanceChanges (is any) and post them for consumption. Application also sets up itself as SUI network even listener (and dumps events on console)
+Application will fetch most recent Checkpoint (from testnet), iterate over transactions (fetching by digests), find BalanceChanges (is any) and post them for consumption. Application also sets up itself as SUI network even listener (and dumps events on console)
 
 4. To exit
 
