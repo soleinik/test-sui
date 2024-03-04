@@ -1,4 +1,4 @@
-# [SUI](https://suiexplorer.com/?network=testnet) consumer network
+# [SUI](https://suiexplorer.com/?network=testnet) network event consumer
 
 
 # About
