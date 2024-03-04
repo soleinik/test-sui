@@ -21,8 +21,7 @@ This project consists of 3 crates
 $ git clone git@github.com:soleinik/test-sui.git & cd test-sui
 
 ```
-3. Build and run
-while in project's root folder, execute `cargo run` as follows
+3. _Build_ and _run_ while in project's root folder, execute `cargo run` as follows
 
 ```
 $ cargo run
