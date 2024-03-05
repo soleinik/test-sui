@@ -1,7 +1,7 @@
 use std::{env, error::Error};
 
 use app_data::BalanceChange;
-use log::{debug, error, info};
+use log::{error, info};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[tokio::main]
