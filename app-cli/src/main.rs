@@ -1,6 +1,7 @@
 use std::{env, error::Error};
 
 use app_data::BalanceChange;
+use log::{debug, error};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[tokio::main]
@@ -16,13 +17,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let (tx, mut rx): (Sender<BalanceChange>, Receiver<BalanceChange>) = mpsc::channel(100);
 
-    // this is where we could run loop to restart whole lib, in case of error
-    app_lib::lib_run(tx).await?;
+    tokio::spawn(async move {
+        loop {
+            //maybe separate Checkpoint and event loop
+            //or... wrap event loop inside the library
+            let r = app_lib::lib_run(tx.clone()).await;
+            error!("Library thread exited! Result:{r:#?}");
+        }
+    });
+
+    //app_lib::query_checkpoints().await
 
     loop {
         if let Some(b) = rx.recv().await {
             //send it
-            println!("{b:#?}")
+            debug!("{b:#?}")
         }
     }
 }
