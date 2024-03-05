@@ -17,4 +17,8 @@ sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk" }
 tokio-stream = "0.1"
 
 tokio = { version = "1.36", features = ["full"] }
-#thiserror = "1.0"
+
+backoff = { version = "0.4", features = [
+    "futures",
+    "tokio",
+] } #thiserror = "1.0"

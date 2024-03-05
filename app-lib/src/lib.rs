@@ -12,11 +12,12 @@ use sui_sdk::{
         SuiTransactionBlockResponseOptions, TransactionFilter,
     },
     types::{base_types::SuiAddress, digests::TransactionDigest},
-    SuiClientBuilder,
 };
 
 use tokio::sync::mpsc::Sender;
 use tokio_stream::StreamExt;
+
+mod connection;
 
 /// Library entry point
 /// Fetches latest checkpoint and subscribes to events
@@ -36,51 +37,12 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<(), Box<dyn 
 
     loop {
         info!("Entering WSS subscription loop...");
-        let ws = SuiClientBuilder::default()
-            .ws_url("wss://rpc.testnet.sui.io:443")
-            .build("https://fullnode.testnet.sui.io:443")
-            .await?;
 
-        let subscribe = ws.read_api().subscribe_transaction(filter.clone()).await;
+        //this is hard error
+        let client = connection::connection().await?;
 
-        let mut subscribe = match subscribe {
-            Ok(subscribe) => subscribe,
-            Err(err) => {
-                error!("Subscribing to events error:{err}");
-                match err {
-                    sui_sdk::error::Error::RpcError(e) => {
-                        println!("RPC Error: {e}");
-                        continue;
-                    }
-                    sui_sdk::error::Error::JsonRpcError(e) => println!("JSONRPC Error: {e}"),
-                    sui_sdk::error::Error::BcsSerialisationError(e) => {
-                        println!("BcsSer Error: {e}")
-                    }
-                    sui_sdk::error::Error::UserInputError(e) => println!("User Input Error: {e}"),
-                    sui_sdk::error::Error::Subscription(e) => println!("Subscription Error: {e}"),
-                    sui_sdk::error::Error::FailToConfirmTransactionStatus(x, y) => {
-                        println!("FailToConfirmTransactionStatus Error: {x} & {y}")
-                    }
-                    sui_sdk::error::Error::DataError(e) => println!("Data Error: {e}"),
-                    sui_sdk::error::Error::ServerVersionMismatch {
-                        client_version,
-                        server_version,
-                    } => {
-                        println!(
-                            "Server Version mismatch Error: {client_version} == {server_version}"
-                        );
-                        //hard error
-                        std::process::exit(1);
-                    }
-                    sui_sdk::error::Error::InsufficientFund { address, amount } => {
-                        println!("InsufficientFund Error: {address} and {amount}")
-                    }
-                }
-
-                //maybe exponential backoff here?
-                continue;
-            }
-        };
+        //implements re-try logic and returns hard error if nothing worked
+        let mut subscribe = connection::subscription(&client, filter.clone()).await?;
 
         info!("Entering event loop...");
         while let Some(evt) = subscribe.next().await {
@@ -89,7 +51,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<(), Box<dyn 
                     //ConsensusCommitPrologue has no balance changes... it points at checkpoint with other transaction that should have balance changes
                     let digest = evt.transaction_digest();
 
-                    let resp = ws
+                    let resp = client
                         .read_api()
                         .get_transaction_with_options(
                             *digest,
@@ -98,7 +60,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<(), Box<dyn 
                         .await?;
 
                     if resp.checkpoint.is_none() {
-                        debug!("checkpoint is none: {resp}");
+                        debug!("transaction does not have checkpoint: {resp}");
                         continue;
                     }
 
@@ -118,35 +80,8 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<(), Box<dyn 
                 }
                 Err(err) => {
                     error!("Processing events error:{err}");
-                    match err {
-                        sui_sdk::error::Error::RpcError(e) => println!("RPC Error: {e}"),
-                        sui_sdk::error::Error::JsonRpcError(e) => {
-                            println!("JSONRPC Error: {e}")
-                        }
-                        sui_sdk::error::Error::BcsSerialisationError(e) => {
-                            println!("BcsSer Error: {e}")
-                        }
-                        sui_sdk::error::Error::UserInputError(e) => {
-                            println!("User Input Error: {e}")
-                        }
-                        sui_sdk::error::Error::Subscription(e) => {
-                            println!("Subscription Error: {e}")
-                        }
-                        sui_sdk::error::Error::FailToConfirmTransactionStatus(x, y) => {
-                            println!("FailToConfirmTransactionStatus Error: {x} & {y}")
-                        }
-                        sui_sdk::error::Error::DataError(e) => println!("Data Error: {e}"),
-                        sui_sdk::error::Error::ServerVersionMismatch {
-                            client_version,
-                            server_version,
-                        } => println!(
-                            "Server Version mismatch Error: {client_version} == {server_version}"
-                        ),
-                        sui_sdk::error::Error::InsufficientFund { address, amount } => {
-                            println!("InsufficientFund Error: {address} and {amount}")
-                        }
-                    }
-                    break;
+                    //
+                    connection::handle_error(&err)?;
                 }
             }
         }
@@ -157,6 +92,7 @@ async fn fetch_checkpoint_wrap(
     checkpoint_seq_num: Option<u64>,
     tx: &Sender<app_data::BalanceChange>,
 ) {
+    //info!("fetching checkpoint...");
     let mut cnt = 0;
     loop {
         match fetch_checkpoint(checkpoint_seq_num, tx).await {
@@ -180,8 +116,9 @@ async fn fetch_checkpoint(
     checkpoint_seq_num: Option<u64>,
     tx: &Sender<app_data::BalanceChange>,
 ) -> Result<(), Box<dyn Error>> {
-    let sui_net = SuiClientBuilder::default().build_testnet().await?;
-    let api = sui_net.read_api();
+    // let sui_net = SuiClientBuilder::default().build_testnet().await?;
+    let client = connection::connection().await?;
+    let api = client.read_api();
 
     let digests = if let Some(v) = checkpoint_seq_num {
         let cp = api.get_checkpoint(CheckpointId::SequenceNumber(v)).await?;

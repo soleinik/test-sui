@@ -1,7 +1,7 @@
 use std::{env, error::Error};
 
 use app_data::BalanceChange;
-use log::{debug, error};
+use log::{debug, error, info};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[tokio::main]
@@ -17,6 +17,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let (tx, mut rx): (Sender<BalanceChange>, Receiver<BalanceChange>) = mpsc::channel(100);
 
+    info!("===============Starting subscription thread...==============");
     tokio::spawn(async move {
         loop {
             //maybe separate Checkpoint and event loop
@@ -26,12 +27,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    //app_lib::query_checkpoints().await
-
+    info!("===============Entering receiving loop...===================");
     loop {
         if let Some(b) = rx.recv().await {
             //send it
-            debug!("{b:#?}")
+            println!("{b:#?}")
         }
     }
 }
