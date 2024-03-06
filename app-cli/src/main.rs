@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             //or... wrap event loop inside the library
             let r = app_lib::lib_run(tx.clone()).await;
             error!("Library thread exited! Result:{r:#?}");
+            std::process::exit(1);
         }
     });
 

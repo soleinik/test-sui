@@ -1,12 +1,14 @@
+use anyhow::Result;
+
 use log::error;
-use std::error::Error;
 use sui_sdk::{
     rpc_types::{SuiTransactionBlockEffects, TransactionFilter},
     SuiClient, SuiClientBuilder,
 };
 use tokio_stream::Stream;
 
-pub(crate) async fn connection() -> Result<SuiClient, sui_sdk::error::Error> {
+pub(crate) async fn connection() -> std::result::Result<SuiClient, sui_sdk::error::Error> {
+    //sui_sdk::error::Error> {
     SuiClientBuilder::default()
         .ws_url("wss://rpc.testnet.sui.io:443")
         .build("https://fullnode.testnet.sui.io:443")
@@ -16,45 +18,72 @@ pub(crate) async fn connection() -> Result<SuiClient, sui_sdk::error::Error> {
 pub(crate) async fn subscription(
     client: &SuiClient,
     filter: TransactionFilter,
-) -> Result<
+) -> std::result::Result<
     impl Stream<Item = Result<SuiTransactionBlockEffects, sui_sdk::error::Error>>,
-    Box<dyn Error>,
+    //backoff::Error<sui_sdk::error::Error>,
+    sui_sdk::error::Error,
 > {
-    backoff::future::retry(backoff::ExponentialBackoff::default(), || async {
-        Ok(_subscription(client, filter.clone()).await?)
-    })
-    .await
+    //looks like if subscription fails, we need new SuiClient...
+    // println!("Subscribing...");
+    // backoff::future::retry(backoff::ExponentialBackoff::default(), || async {
+    //     Ok(_subscription(client, filter.clone()).await?)
+    // })
+    // .await
+    _subscription(client, filter).await
 }
 
 async fn _subscription(
     client: &SuiClient,
     filter: TransactionFilter,
-) -> Result<
+) -> std::result::Result<
     impl Stream<Item = Result<SuiTransactionBlockEffects, sui_sdk::error::Error>>,
-    Box<dyn Error>,
+    //backoff::Error<sui_sdk::error::Error>,
+    sui_sdk::error::Error,
 > {
-    loop {
-        let subscribe = client
-            .read_api()
-            .subscribe_transaction(filter.clone())
-            .await;
+    //loop {
+    let subscribe = client
+        .read_api()
+        .subscribe_transaction(filter.clone())
+        .await;
+    subscribe
 
-        match subscribe {
-            Ok(subscribe) => return Ok(subscribe),
-            Err(err) => {
-                error!("Subscribing to events error:{err}");
-                handle_error(&err)?;
-                continue;
-            }
-        };
-    }
+    // match subscribe {
+    //     Ok(subscribe) => return Ok(subscribe),
+    //     Err(err) => {
+    //         error!("Subscribing to events error:{err}");
+    //     //     return match handle_error(&err) {
+    //     //         Ok(_) => Err(backoff::Error::transient(err)),
+    //     //         Err(_) => Err(backoff::Error::permanent(err)),
+    //     //     };
+    //     // }
+    // };
+    //}
 }
 
-pub(crate) fn handle_error(err: &sui_sdk::error::Error) -> Result<(), sui_sdk::error::Error> {
+/// maps
+pub(crate) fn handle_error(
+    err: &sui_sdk::error::Error,
+) -> std::result::Result<(), &sui_sdk::error::Error> {
     match err {
         sui_sdk::error::Error::RpcError(e) => {
-            println!("RPC Error: {e}");
-            //continue;
+            match e {
+                jsonrpsee::core::Error::Call(v) => match v {
+                    jsonrpsee::types::error::CallError::InvalidParams(vv) => {
+                        //this seem to be recoverble error
+                        error!("Recoverable CallError - InvalidParams[{vv}]");
+                        return Ok(());
+                    }
+                    jsonrpsee::types::error::CallError::Failed(vv) => {
+                        error!("Recoverable CallError - failed[{vv}]");
+                        return Ok(());
+                    }
+                    jsonrpsee::types::error::CallError::Custom(vv) => {
+                        error!("Recoverable CallError - custom[{vv:?}]");
+                        return Ok(());
+                    }
+                },
+                _ => (),
+            }
         }
         sui_sdk::error::Error::JsonRpcError(e) => println!("JSONRPC Error: {e}"),
         sui_sdk::error::Error::BcsSerialisationError(e) => {
@@ -78,6 +107,6 @@ pub(crate) fn handle_error(err: &sui_sdk::error::Error) -> Result<(), sui_sdk::e
             println!("InsufficientFund Error: {address} and {amount}")
         }
     }
-
-    Ok(())
+    error!("Unhandled, NON-Recoverable RpcError[{err}]");
+    Err(err)
 }

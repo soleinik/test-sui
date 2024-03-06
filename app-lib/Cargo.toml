@@ -10,7 +10,7 @@ edition.workspace = true
 app-data = { path = "../app-data" }
 
 log = "0.4"
-
+anyhow = "1.0.80"
 
 sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk" }
 
@@ -18,7 +18,13 @@ tokio-stream = "0.1"
 
 tokio = { version = "1.36", features = ["full"] }
 
-backoff = { version = "0.4", features = [
-    "futures",
-    "tokio",
-] } #thiserror = "1.0"
+backoff = { version = "0.4", features = ["futures", "tokio"] }
+
+
+jsonrpsee = { git = "https://github.com/wlmyng/jsonrpsee.git", rev = "b1b300784795f6a64d0fcdf8f03081a9bc38bde8", features = [
+    # "server",
+    # "macros",
+    # "ws-client",
+    # "http-client",
+    "jsonrpsee-core",
+] }
