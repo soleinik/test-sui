@@ -80,14 +80,19 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
                         //Data issue, maybe re-try here? ConsensusCommitPrologue should have checkpoint...
                         let Some(seq) = resp.checkpoint else {
                             if tries > 2 {
-                                warn!("Giving up re-tries [#{tries}] - transaction {evt:#?} does not have checkpoint: {resp}");
+                                warn!("Giving up re-tries [#{tries}] - transaction {digest} does not have checkpoint");
                                 continue 'outer;
                             }
-                            warn!("Attempt#{tries} - transaction {evt:#?} does not have checkpoint: {resp}");
+                            warn!(
+                                "Attempt #{tries} - transaction {digest} does not have checkpoint"
+                            );
                             tries += 1;
                             sleep(Duration::from_millis(100)).await;
                             continue;
                         };
+                        if tries > 0 {
+                            info!("Attempt #{tries} - Transaction's {digest} missing checkpoint [{seq}] sequence recovered!");
+                        }
                         break (seq, resp);
                     };
 
