@@ -19,24 +19,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("===============Starting subscription thread...==============");
     tokio::spawn(async move {
-        loop {
-            //maybe separate Checkpoint and event loop
-            //or... wrap event loop inside the library
-            let r = app_lib::lib_run(tx.clone()).await;
-            error!("Library thread exited! Result:{r:#?}");
-            std::process::exit(1);
-        }
+        //maybe separate Checkpoint and event loop
+        //or... wrap event loop inside the library
+        let r = app_lib::lib_run(tx.clone()).await;
+        error!("Library thread exited! Result:{r:#?}");
+        std::process::exit(1);
     });
 
     info!("===============Starting web thread...==============");
     tokio::spawn(async move {
-        loop {
-            //maybe separate Checkpoint and event loop
-            //or... wrap event loop inside the library
-            let r = app_web::run_web().await;
-            error!("web thread exited! Result:{r:#?}");
-            std::process::exit(1);
-        }
+        //maybe separate Checkpoint and event loop
+        //or... wrap event loop inside the library
+        let r = app_web::run_web().await;
+        error!("web thread exited! Result:{r:#?}");
+        std::process::exit(1);
     });
 
     info!("===============Entering receiving loop...===================");

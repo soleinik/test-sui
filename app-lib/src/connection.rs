@@ -37,27 +37,12 @@ async fn _subscription(
     filter: TransactionFilter,
 ) -> std::result::Result<
     impl Stream<Item = Result<SuiTransactionBlockEffects, sui_sdk::error::Error>>,
-    //backoff::Error<sui_sdk::error::Error>,
     sui_sdk::error::Error,
 > {
-    //loop {
-    let subscribe = client
+    client
         .read_api()
         .subscribe_transaction(filter.clone())
-        .await;
-    subscribe
-
-    // match subscribe {
-    //     Ok(subscribe) => return Ok(subscribe),
-    //     Err(err) => {
-    //         error!("Subscribing to events error:{err}");
-    //     //     return match handle_error(&err) {
-    //     //         Ok(_) => Err(backoff::Error::transient(err)),
-    //     //         Err(_) => Err(backoff::Error::permanent(err)),
-    //     //     };
-    //     // }
-    // };
-    //}
+        .await
 }
 
 /// maps
@@ -66,8 +51,8 @@ pub(crate) fn handle_error(
 ) -> std::result::Result<(), &sui_sdk::error::Error> {
     match err {
         sui_sdk::error::Error::RpcError(e) => {
-            match e {
-                jsonrpsee::core::Error::Call(v) => match v {
+            if let jsonrpsee::core::Error::Call(v) = e {
+                match v {
                     jsonrpsee::types::error::CallError::InvalidParams(vv) => {
                         //this seem to be recoverble error
                         error!("Recoverable CallError - InvalidParams[{vv}]");
@@ -81,8 +66,7 @@ pub(crate) fn handle_error(
                         error!("Recoverable CallError - custom[{vv:?}]");
                         return Ok(());
                     }
-                },
-                _ => (),
+                }
             }
         }
         sui_sdk::error::Error::JsonRpcError(e) => println!("JSONRPC Error: {e}"),

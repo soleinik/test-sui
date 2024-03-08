@@ -205,7 +205,8 @@ async fn fetch_checkpoint(
         checkpoint_seq_num.unwrap_or_default(),
         balances.len()
     );
-    Ok(publish(&balances, tx).await)
+    publish(&balances, tx).await;
+    Ok(())
 }
 
 /// Publish message to the consumer via channels
