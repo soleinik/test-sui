@@ -10,6 +10,7 @@ This project consists of 3 crates
 - [lib](./app-lib/) with main logic
 - [launcher](./app-cli/) with binary app
 - [data](./app-data/) shared data between services
+- [web](./app-web/) consumer service
 
 
 ## How to run
