@@ -1,19 +1,12 @@
 [package]
-name = "app-cli"
+name = "app-web"
 version.workspace = true
 edition.workspace = true
-
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-app-lib = { path = "../app-lib" }
 app-data = { path = "../app-data" }
-app-web = { path = "../app-web" }
 
-log = { workspace = true }
-env_logger = "0.11"
-
+axum = "0.7"
 tokio = { workspace = true, features = ["full"] }
-dotenv = "0.15.0"
-reqwest = { version = "0.11", features = ["json"] }

@@ -9,15 +9,14 @@ edition.workspace = true
 [dependencies]
 app-data = { path = "../app-data" }
 
-log = "0.4"
+log = { workspace = true }
 anyhow = "1.0.80"
 
 sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk" }
 
 tokio-stream = "0.1"
 
-tokio = { version = "1.36", features = ["full"] }
-
+tokio = { workspace = true, features = ["full"] }
 backoff = { version = "0.4", features = ["futures", "tokio"] }
 
 

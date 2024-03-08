@@ -28,11 +28,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    info!("===============Starting web thread...==============");
+    tokio::spawn(async move {
+        loop {
+            //maybe separate Checkpoint and event loop
+            //or... wrap event loop inside the library
+            let r = app_web::run_web().await;
+            error!("web thread exited! Result:{r:#?}");
+            std::process::exit(1);
+        }
+    });
+
     info!("===============Entering receiving loop...===================");
+    let url = "http://localhost:8080/balances";
+    let client = reqwest::Client::builder().build()?;
     loop {
         if let Some(b) = rx.recv().await {
             //send it
-            println!("{b:#?}")
+            //println!("{b:#?}");
+            match client.post(url).json(&vec![b]).send().await {
+                Ok(_resp) => (),
+                Err(err) => println!("error:{err}"),
+            }
         }
     }
 }

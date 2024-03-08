@@ -1,9 +1,14 @@
 [workspace]
-members = ["app-cli", "app-data", "app-lib"]
-default-members = ["app-cli", "app-lib", "app-data"]
+members = ["app-cli", "app-data", "app-lib", "app-web"]
+default-members = ["app-cli", "app-lib", "app-data", "app-web"]
 resolver = "2"
 
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
+
+
+[workspace.dependencies]
+tokio = "1.36"
+log = "0.4"

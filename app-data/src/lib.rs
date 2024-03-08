@@ -1,19 +1,23 @@
 use serde::{Deserialize, Serialize};
+use sui_sdk::types::object::Owner;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BalanceChange {
     pub address: String,
     pub coin: String,
-    pub amout: i128,
+    pub amount: i128,
 }
 
 impl From<&sui_sdk::rpc_types::BalanceChange> for BalanceChange {
     fn from(value: &sui_sdk::rpc_types::BalanceChange) -> Self {
-        //let name =
+        let addr = match value.owner {
+            Owner::AddressOwner(sui) => sui.to_string(),
+            _ => value.owner.to_string(),
+        };
         BalanceChange {
-            address: value.owner.to_string(),
+            address: addr,
             coin: value.coin_type.to_string(),
-            amout: value.amount,
+            amount: value.amount,
         }
     }
 }

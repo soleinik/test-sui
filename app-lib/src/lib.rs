@@ -87,6 +87,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
                                 "Attempt #{tries} - transaction {digest} does not have checkpoint"
                             );
                             tries += 1;
+                            //this is data race error... we want to predicable timing. It can be exponential backoff with short span
                             sleep(Duration::from_millis(100)).await;
                             continue;
                         };
