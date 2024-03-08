@@ -8,7 +8,7 @@ mod data_creator;
 use data_creator::*;
 
 #[tokio::test]
-async fn my_test() {
+async fn web_app_test_routes_ok() {
     let router = app_web::router();
     let client = TestClient::new(router);
     let orig = get_balance_rand(99999);
