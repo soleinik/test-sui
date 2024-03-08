@@ -10,3 +10,8 @@ app-data = { path = "../app-data" }
 
 axum = "0.7"
 tokio = { workspace = true, features = ["full"] }
+
+
+[dev-dependencies]
+axum-test-helpers = "0.7"
+rand = "0.8"

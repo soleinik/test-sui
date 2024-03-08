@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sui_sdk::types::object::Owner;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BalanceChange {
     pub address: String,
     pub coin: String,

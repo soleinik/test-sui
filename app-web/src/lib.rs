@@ -26,18 +26,24 @@ curl -s  http://localhost:8080/accounts | jq
 
 */
 
-pub async fn run_web() {
-    let app = Router::new()
-        // `POST /users` goes to `create_user`
-        .route("/balances", post(balance_change_set))
-        .route("/balances", get(balance_list_get))
-        .route("/balances/:account_id", get(account))
-        .route("/accounts", get(account_list_get))
-        .with_state(Arc::new(AppState::default()));
+pub const PATH_POST_BALANCE: &str = "/balances";
+pub const PATH_GET_BALANCE_LIST: &str = "/balances";
+pub const PATH_GET_BALANCE_ACCOUNT: &str = "/balances/:account_id";
+pub const PATH_GET_ACCOUNT_LIST: &str = "/accounts";
 
+pub fn router() -> Router {
+    Router::new()
+        .route(PATH_POST_BALANCE, post(balance_change_set))
+        .route(PATH_GET_BALANCE_LIST, get(balance_list_get))
+        .route(PATH_GET_BALANCE_ACCOUNT, get(account))
+        .route(PATH_GET_ACCOUNT_LIST, get(account_list_get))
+        .with_state(Arc::new(AppState::default()))
+}
+
+pub async fn run_web() {
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, router()).await.unwrap();
 }
 
 async fn balance_change_set(
