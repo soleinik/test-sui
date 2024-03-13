@@ -10,5 +10,5 @@ edition = "2021"
 
 
 [workspace.dependencies]
-tokio = "1.36"
+tokio = "1"
 log = "0.4"

@@ -7,8 +7,9 @@ use anyhow::Result;
 use log::{error, info, trace, warn};
 use std::{str::FromStr, time::Duration};
 use sui_sdk::{
+    error::SuiRpcResult,
     rpc_types::{
-        BalanceChange, CheckpointId, SuiTransactionBlockEffectsAPI,
+        BalanceChange, CheckpointId, SuiTransactionBlockEffectsAPI, SuiTransactionBlockResponse,
         SuiTransactionBlockResponseOptions, TransactionFilter,
     },
     types::{base_types::SuiAddress, digests::TransactionDigest},
@@ -33,6 +34,13 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
         fetch_checkpoint_wrap(&client, None, &_tx).await;
     });
 
+    // Subscription to transaction events
+    // We listen to `ConcensusCommitPrologue` as it is one of the required transaction in Checkpoint's transactions set.
+    // `ConsensusCommitProlog` transaction contains referenece to Checkpoint's `sequence number`. We use `seq_num` to fetch Checkoint with
+    // full set of finalized transactions, that we itterate and find transactions with BalanceChange
+    // NOTE: initial thought was to subscribe to Checkpoint event,that would be more optimal, but we were not able to receive the event from SUI public node(devnet,testnet).
+    // Additional investigation required...
+
     let filter = TransactionFilter::FromAddress(SuiAddress::from_str(SENDER_ADDRESS).unwrap());
 
     let mut checkpoint_seq_num = u64::MIN;
@@ -41,7 +49,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
         info!("Entering WSS subscription loop...");
 
         //this is hard error
-        let client = connection::connection().await?;
+        let mut client = connection::connection().await?;
 
         //implements re-try logic and returns hard error if nothing worked
         let mut subscribe = match connection::subscription(&client, filter.clone()).await {
@@ -68,14 +76,18 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
                     let mut tries = 0;
                     let (seq, resp) = loop {
                         // --------------------------------------------------------------
-                        // get checkpoint's sequence number
-                        let resp = client
-                            .read_api()
-                            .get_transaction_with_options(
-                                *digest,
-                                SuiTransactionBlockResponseOptions::default(),
-                            )
-                            .await?;
+                        // get checkpoint's sequence number with exp re-tries for the transaction digest
+                        // if error is permannent or re-tries exceeded - bail out and hard fail application
+                        // NOTE: this code can be improved by re-establishing connection and preserving digest
+                        // However, Checkpoint seq_number is something that we are after, so the proposed algoritm should be
+                        // - wait to get valid `ConsensusCommitProlog` transaction
+                        // - fetch Checkpoint seq_num (the current)
+                        // - sequentially, fetch to close the gap between last known Checkpoint seq_num to the application and close the gap
+                        //   between "last known" and "current" transaction. This would require either persist "last known" Checkpoit or
+                        //   introduce application in-memory state (that not the best for conteineraized deployment, restarts and crash recoveries)
+                        //
+                        // Crate: [backoff](https://crates.io/crates/backoff)
+                        let resp = fetch_transaction(&client, digest).await?;
 
                         //Data issue, maybe re-try here? ConsensusCommitPrologue should have checkpoint...
                         let Some(seq) = resp.checkpoint else {
@@ -89,6 +101,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
                             tries += 1;
                             //this is data race error... we want to predicable timing. It can be exponential backoff with short span
                             sleep(Duration::from_millis(100)).await;
+                            //this is where we attempting to re-fetch incomplete `ConsensusCommitPrologue` (missing Checkpoint's seq_num)
                             continue;
                         };
                         if tries > 0 {
@@ -124,6 +137,27 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
             }
         }
     }
+}
+
+async fn fetch_transaction(
+    client: &SuiClient,
+    digest: &TransactionDigest,
+) -> SuiRpcResult<SuiTransactionBlockResponse> {
+    backoff::future::retry(backoff::ExponentialBackoff::default(), || async {
+        let res = client
+            .read_api()
+            .get_transaction_with_options(*digest, SuiTransactionBlockResponseOptions::default())
+            .await;
+
+        match res {
+            Ok(ret_val) => Ok(ret_val),
+            Err(e0) => match connection::handle_error(&e0) {
+                Ok(_) => Err(e0).map_err(backoff::Error::transient),
+                Err(_) => Err(e0).map_err(backoff::Error::permanent),
+            },
+        }
+    })
+    .await
 }
 
 async fn fetch_checkpoint_wrap(

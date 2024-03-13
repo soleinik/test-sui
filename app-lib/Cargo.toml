@@ -17,7 +17,7 @@ sui-sdk = { git = "https://github.com/mystenlabs/sui", package = "sui-sdk" }
 tokio-stream = "0.1"
 
 tokio = { workspace = true, features = ["full"] }
-backoff = { version = "0.4", features = ["futures", "tokio"] }
+backoff = { version = "0.4", features = ["tokio"] }
 
 
 jsonrpsee = { git = "https://github.com/wlmyng/jsonrpsee.git", rev = "b1b300784795f6a64d0fcdf8f03081a9bc38bde8", features = [
