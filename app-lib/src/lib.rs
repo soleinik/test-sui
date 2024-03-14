@@ -49,7 +49,7 @@ pub async fn lib_run(tx: Sender<app_data::BalanceChange>) -> Result<()> {
         info!("Entering WSS subscription loop...");
 
         //this is hard error
-        let mut client = connection::connection().await?;
+        let client = connection::connection().await?;
 
         //implements re-try logic and returns hard error if nothing worked
         let mut subscribe = match connection::subscription(&client, filter.clone()).await {

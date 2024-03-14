@@ -8,10 +8,20 @@ use sui_sdk::{
 use tokio_stream::Stream;
 
 pub(crate) async fn connection() -> std::result::Result<SuiClient, sui_sdk::error::Error> {
-    //sui_sdk::error::Error> {
+    connection_mainnet().await
+}
+
+async fn connection_testnet() -> std::result::Result<SuiClient, sui_sdk::error::Error> {
     SuiClientBuilder::default()
         .ws_url("wss://rpc.testnet.sui.io:443")
         .build("https://fullnode.testnet.sui.io:443")
+        .await
+}
+
+async fn connection_mainnet() -> std::result::Result<SuiClient, sui_sdk::error::Error> {
+    SuiClientBuilder::default()
+        .ws_url("wss://rpc.mainnet.sui.io:443")
+        .build("https://fullnode.mainnet.sui.io:443")
         .await
 }
 
